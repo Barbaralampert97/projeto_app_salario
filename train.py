@@ -58,9 +58,39 @@ depara_salario = {
 data[target] = data[target].replace(depara_salario)
 
 data
+
 # %%
 
-x = data[features.values()]
-y = data[target]
-y
+data_not_na = data[~data[target].isna()]
+data_not_na[target].isna().sum()
 # %%
+
+x = data_not_na[features.values()]
+y = data_not_na[target]
+
+from sklearn import model_selection
+
+x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.2, random_state=42, stratify=y)
+
+
+# %%
+
+x_train.isna().sum()
+
+from feature_engine import imputation
+from feature_engine import encoding
+
+input_classe = imputation.CategoricalImputer(fill_value="Não informado",variables=["ufOndeMora",
+                                                        'cargoAtual',
+                                                        'nivel',])
+
+# OneHotEncoder é uma técnica usada para converter variáveis categóricas em variáveis binárias
+
+onehot = encoding.OneHotEncoder(variables=['genero',
+    'pcd',
+    'ufOndeMora',
+    'cargoAtual',
+    'nivel',
+    'tempoDeExperienciaEmDados',
+    'tempoDeExperienciaEmTi',
+])
