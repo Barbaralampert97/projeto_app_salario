@@ -80,9 +80,10 @@ x_train.isna().sum()
 from feature_engine import imputation
 from feature_engine import encoding
 
-input_classe = imputation.CategoricalImputer(fill_value="Não informado",variables=["ufOndeMora",
-                                                        'cargoAtual',
-                                                        'nivel',])
+input_classe = imputation.CategoricalImputer(
+    fill_value="Não informado",
+    variables=["ufOndeMora", 'cargoAtual', 'nivel',]
+)
 
 # OneHotEncoder é uma técnica usada para converter variáveis categóricas em variáveis binárias
 
@@ -94,3 +95,39 @@ onehot = encoding.OneHotEncoder(variables=['genero',
     'tempoDeExperienciaEmDados',
     'tempoDeExperienciaEmTi',
 ])
+
+from sklearn import ensemble
+from sklearn import pipeline
+from sklearn import metrics
+
+clf = ensemble.GradientBoostingClassifier(n_estimators=500, learning_rate=0.6)
+
+# cria um pipeline de ML 
+# imputador -> encoder -> algoritmo
+# imputador é responsável por preencher valores ausentes
+# encoder converte variáveis categóricas em numéricas
+# algoritmo treina o modelo de machine learning
+
+modelo = pipeline.Pipeline(
+    steps=[('imputador', input_classe),
+           ('encoder', onehot),
+           ("algoritmo", clf)]
+)
+
+# .fit é o que realmente chamam de machine learning
+# treinar o modelo
+modelo.fit(x_train, y_train)
+
+# %%
+
+# fazer previsões no conjunto de treino
+y_train_pred = modelo.predict(x_train)
+
+# calcular acurácia no treino
+acc_train = metrics.accuracy_score(y_train, y_train_pred)
+print(f"Acurácia no treino: {acc_train:.2%}")
+
+# fazer previsões no conjunto de teste
+y_test_pred = modelo.predict(x_test)
+acc_test = metrics.accuracy_score(y_test, y_test_pred)
+print(f"Acurácia no teste: {acc_test:.2%}")
