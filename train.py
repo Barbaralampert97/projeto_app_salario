@@ -65,12 +65,19 @@ data_not_na = data[~data[target].isna()]
 data_not_na[target].isna().sum()
 # %%
 
-x = data_not_na[features.values()]
+x = data_not_na[features.values()].copy()
 y = data_not_na[target]
+
+# converter idade para float64 para evitar problemas com valores ausentes no MLflow
+x['idade'] = x['idade'].astype('float64')
 
 from sklearn import model_selection
 
 x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.2, random_state=42, stratify=y)
+
+# garantir que idade seja float64 em ambos os conjuntos
+x_train['idade'] = x_train['idade'].astype('float64')
+x_test['idade'] = x_test['idade'].astype('float64')
 
 
 # %%
@@ -114,20 +121,27 @@ modelo = pipeline.Pipeline(
            ("algoritmo", clf)]
 )
 
+import mlflow
+
+# mlflow envia para o servidor
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_experiment(experiment_id=1)
+
 # .fit é o que realmente chamam de machine learning
-# treinar o modelo
-modelo.fit(x_train, y_train)
-
-# %%
-
-# fazer previsões no conjunto de treino
-y_train_pred = modelo.predict(x_train)
-
-# calcular acurácia no treino
-acc_train = metrics.accuracy_score(y_train, y_train_pred)
-print(f"Acurácia no treino: {acc_train:.2%}")
-
-# fazer previsões no conjunto de teste
-y_test_pred = modelo.predict(x_test)
-acc_test = metrics.accuracy_score(y_test, y_test_pred)
-print(f"Acurácia no teste: {acc_test:.2%}")
+# treinar o modelo com rastreamento MLflow
+with mlflow.start_run():
+    mlflow.sklearn.autolog()
+    
+    modelo.fit(x_train, y_train)
+    
+    # fazer previsões no conjunto de treino
+    y_train_pred = modelo.predict(x_train)
+    
+    # calcular acurácia no treino
+    acc_train = metrics.accuracy_score(y_train, y_train_pred)
+    print(f"Acurácia no treino: {acc_train:.2%}")
+    
+    # fazer previsões no conjunto de teste
+    y_test_pred = modelo.predict(x_test)
+    acc_test = metrics.accuracy_score(y_test, y_test_pred)
+    print(f"Acurácia no teste: {acc_test:.2%}")
