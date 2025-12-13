@@ -1,16 +1,10 @@
 # %%
-
 import pandas as pd
 
-data = pd.read_csv('data/Final Dataset - State of Data 2024 - Kaggle - df_survey_2024.csv')
-
-data.head()
+df = pd.read_csv("data/Final Dataset - State of Data 2024 - Kaggle - df_survey_2024.csv")
+df.head()
 
 # %%
-for i in data.columns:
-    print(i)
- 
-#variáveis independentes   
 features = {
     "1.a_idade": "idade",
     "1.b_genero": "genero",
@@ -21,23 +15,16 @@ features = {
     "2.i_tempo_de_experiencia_em_dados": "tempoDeExperienciaEmDados",
     "2.j_tempo_de_experiencia_em_ti": "tempoDeExperienciaEmTi",
 }
-#variável dependente
+
 target = "2.h_faixa_salarial"
 
-# criando uma lista com todas as colunas que serão usadas
 columns = list(features.keys()) + [target]
 
+df = df[columns].copy()
+df.rename(columns=features, inplace=True)
 
-data = data[columns].copy()
-data.rename(columns=features, inplace=True)
-
-data 
-
+df
 # %%
-
-# ver as classes da variável target
-data[target].unique()
-
 
 depara_salario = {
     'Menos de R$ 1.000/mês':'01 - Menos de R$ 1.000/mês',
@@ -55,46 +42,34 @@ depara_salario = {
     'Acima de R$ 40.001/mês':'13 - Acima de R$ 40.001/mês',
 }
 
-data[target] = data[target].replace(depara_salario)
+df[target] = df[target].replace(depara_salario)
 
-data
+df_not_na = df[~df[target].isna()]
 
 # %%
-
-data_not_na = data[~data[target].isna()]
-data_not_na[target].isna().sum()
-# %%
-
-x = data_not_na[features.values()].copy()
-y = data_not_na[target]
-
-# converter idade para float64 para evitar problemas com valores ausentes no MLflow
-x['idade'] = x['idade'].astype('float64')
+X = df_not_na[features.values()]
+y = df_not_na[target]
 
 from sklearn import model_selection
 
-x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.2, random_state=42, stratify=y)
+X_train, X_test, y_train, y_test = model_selection.train_test_split(X,
+                                                                    y,
+                                                                    test_size=0.2,
+                                                                    random_state=42,
+                                                                    stratify=y)
 
-# garantir que idade seja float64 em ambos os conjuntos
-x_train['idade'] = x_train['idade'].astype('float64')
-x_test['idade'] = x_test['idade'].astype('float64')
-
-
-# %%
-
-x_train.isna().sum()
+X_train.to_csv("data/template.csv", index=False)
 
 from feature_engine import imputation
 from feature_engine import encoding
 
-input_classe = imputation.CategoricalImputer(
-    fill_value="Não informado",
-    variables=["ufOndeMora", 'cargoAtual', 'nivel',]
-)
+imput_classe = imputation.CategoricalImputer(fill_value="Não informado",
+                                             variables=["ufOndeMora",
+                                                        'cargoAtual',
+                                                        'nivel',])
 
-# OneHotEncoder é uma técnica usada para converter variáveis categóricas em variáveis binárias
-
-onehot = encoding.OneHotEncoder(variables=['genero',
+onehot = encoding.OneHotEncoder(variables=[
+    'genero',
     'pcd',
     'ufOndeMora',
     'cargoAtual',
@@ -109,39 +84,28 @@ from sklearn import metrics
 
 clf = ensemble.GradientBoostingClassifier(n_estimators=500, learning_rate=0.6)
 
-# cria um pipeline de ML 
-# imputador -> encoder -> algoritmo
-# imputador é responsável por preencher valores ausentes
-# encoder converte variáveis categóricas em numéricas
-# algoritmo treina o modelo de machine learning
-
 modelo = pipeline.Pipeline(
-    steps=[('imputador', input_classe),
+    steps=[('imputador', imput_classe),
            ('encoder', onehot),
            ("algoritmo", clf)]
 )
 
+# ISSO AQUI É O QUE CHAMAM DE MACHINE LEARNING
+# %%
 import mlflow
 
-# mlflow envia para o servidor
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 mlflow.set_experiment(experiment_id=1)
 
-# .fit é o que realmente chamam de machine learning
-# treinar o modelo com rastreamento MLflow
+# Configurar autolog ANTES de start_run para evitar warnings
+mlflow.sklearn.autolog(log_input_examples=False, log_model_signatures=False)
+
 with mlflow.start_run():
-    mlflow.sklearn.autolog()
-    
-    modelo.fit(x_train, y_train)
-    
-    # fazer previsões no conjunto de treino
-    y_train_pred = modelo.predict(x_train)
-    
-    # calcular acurácia no treino
-    acc_train = metrics.accuracy_score(y_train, y_train_pred)
-    print(f"Acurácia no treino: {acc_train:.2%}")
-    
-    # fazer previsões no conjunto de teste
-    y_test_pred = modelo.predict(x_test)
-    acc_test = metrics.accuracy_score(y_test, y_test_pred)
-    print(f"Acurácia no teste: {acc_test:.2%}")
+    modelo.fit(X_train, y_train)
+    y_train_predict = modelo.predict(X_train)
+    acc_train = metrics.accuracy_score(y_train, y_train_predict)
+
+    y_test_predict = modelo.predict(X_test)
+    acc_test = metrics.accuracy_score(y_test, y_test_predict)
+
+# %%
