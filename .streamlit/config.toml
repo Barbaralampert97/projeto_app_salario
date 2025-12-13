@@ -1,0 +1,28 @@
+[theme]
+# Tema moderno com gradiente azul/roxo escuro
+primaryColor = "#00D9FF"           # Azul ciano vibrante
+backgroundColor = "#0A0E27"         # Azul escuro profundo
+secondaryBackgroundColor = "#1A1F3A" # Azul escuro médio
+textColor = "#E8E8E8"              # Branco suave
+font = "sans serif"
+
+# Outras opções de tema que você pode testar:
+
+# TEMA VERDE MATRIX:
+# primaryColor = "#00FF41"
+# backgroundColor = "#0D0208"
+# secondaryBackgroundColor = "#1A1A1A"
+# textColor = "#00FF41"
+
+# TEMA ROXO NEON:
+# primaryColor = "#B24BF3"
+# backgroundColor = "#0F0326"
+# secondaryBackgroundColor = "#1C0B3D"
+# textColor = "#F0E7FF"
+
+# TEMA LARANJA SUNSET:
+# primaryColor = "#FF6B35"
+# backgroundColor = "#1A1423"
+# secondaryBackgroundColor = "#2D253A"
+# textColor = "#F4E8C1"
+
